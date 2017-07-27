@@ -49,11 +49,15 @@ namespace B2CWebApi
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
 
+            var tenant = Configuration["Authentication:AzureAd:Tenant"];
+            var policy = Configuration["Authentication:AzureAd:Policy"];
+            var audience = Configuration["Authentication:AzureAd:ClientId"];
+
             app.UseJwtBearerAuthentication(new JwtBearerOptions
             {
-                Authority = string.Format("https://login.microsoftonline.com/tfp/{0}/{1}/v2.0/", 
-                    Configuration["Authentication:AzureAd:Tenant"], Configuration["Authentication:AzureAd:Policy"]),
-                Audience = Configuration["Authentication:AzureAd:ClientId"],
+                Authority = string.Format("https://login.microsoftonline.com/tfp/{0}/{1}/v2.0/",
+                    tenant, policy),
+                Audience = audience,
                 Events = new JwtBearerEvents
                 {
                     OnAuthenticationFailed = AuthenticationFailed
