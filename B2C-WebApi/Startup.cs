@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 
 namespace B2CWebApi
 {
@@ -39,6 +41,8 @@ namespace B2CWebApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors();
+
             // Add framework services.
             services.AddMvc();
         }
@@ -48,6 +52,11 @@ namespace B2CWebApi
         {
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
+
+            //app.UseCors(builder => builder
+            //.AllowAnyOrigin()
+            //.AllowAnyMethod()
+            //.AllowAnyHeader());
 
             var tenant = Configuration["Authentication:AzureAd:Tenant"];
             var policy = Configuration["Authentication:AzureAd:Policy"];
@@ -60,8 +69,18 @@ namespace B2CWebApi
                 Audience = audience,
                 Events = new JwtBearerEvents
                 {
-                    OnAuthenticationFailed = AuthenticationFailed
-                }            
+                    OnAuthenticationFailed = AuthenticationFailed,
+                    OnChallenge = (context) =>
+                    {
+                        var debug = context;
+                        return Task.FromResult(0);
+                    },
+                    OnMessageReceived = context =>
+                    {
+                        var debug = context;
+                        return Task.FromResult(0);
+                    }
+                }
             });
 
             ScopeRead = Configuration["Authentication:AzureAd:ScopeRead"];
