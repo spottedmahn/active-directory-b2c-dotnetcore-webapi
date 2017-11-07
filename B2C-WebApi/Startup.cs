@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
@@ -9,8 +6,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
 
 namespace B2CWebApi
 {
@@ -41,7 +36,19 @@ namespace B2CWebApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddCors();
+              services.AddAuthentication(options =>
+              {
+                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+              })
+                .AddJwtBearer(jwtOptions =>
+                {
+                  jwtOptions.Authority = $"https://login.microsoftonline.com/tfp/{Configuration["AzureAdB2C:Tenant"]}/{Configuration["AzureAdB2C:Policy"]}/v2.0/";
+                  jwtOptions.Audience = Configuration["AzureAdB2C:ClientId"];
+                  jwtOptions.Events = new JwtBearerEvents
+                  {
+                    OnAuthenticationFailed = AuthenticationFailed
+                  };
+                });
 
             // Add framework services.
             services.AddMvc();
@@ -53,38 +60,10 @@ namespace B2CWebApi
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
 
-            //app.UseCors(builder => builder
-            //.AllowAnyOrigin()
-            //.AllowAnyMethod()
-            //.AllowAnyHeader());
+            ScopeRead = Configuration["AzureAdB2C:ScopeRead"];
+            ScopeWrite = Configuration["AzureAdB2C:ScopeWrite"];
 
-            var tenant = Configuration["Authentication:AzureAd:Tenant"];
-            var policy = Configuration["Authentication:AzureAd:Policy"];
-            var audience = Configuration["Authentication:AzureAd:ClientId"];
-
-            app.UseJwtBearerAuthentication(new JwtBearerOptions
-            {
-                Authority = string.Format("https://login.microsoftonline.com/tfp/{0}/{1}/v2.0/",
-                    tenant, policy),
-                Audience = audience,
-                Events = new JwtBearerEvents
-                {
-                    OnAuthenticationFailed = AuthenticationFailed,
-                    OnChallenge = (context) =>
-                    {
-                        var debug = context;
-                        return Task.FromResult(0);
-                    },
-                    OnMessageReceived = context =>
-                    {
-                        var debug = context;
-                        return Task.FromResult(0);
-                    }
-                }
-            });
-
-            ScopeRead = Configuration["Authentication:AzureAd:ScopeRead"];
-            ScopeWrite = Configuration["Authentication:AzureAd:ScopeWrite"];
+            app.UseAuthentication();
 
             app.UseMvc(routes =>
             {
